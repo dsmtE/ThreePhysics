@@ -2,6 +2,12 @@ import * as THREE from 'three';
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import dat from 'three/examples/jsm/libs/dat.gui.module.js';
+
+// Phisics class
+import { Dot } from './Dot';
+import { Spring } from './Spring';
+import { Drawable, Simulated } from './Interfaces';
+
 export default class App {
 
     scene: THREE.Scene;
@@ -15,9 +21,18 @@ export default class App {
     stats: Stats;
 
     param = {
-        playPause: function() { this.param.play = !this.param.play;}.bind(this),
+        // playPause: function() { this.param.play = !this.param.play;}.bind(this),
         play: true,
+        drawFps: 60,
     }
+
+    lastTime: number;
+
+    // Simulation data
+    h: number; // timeStep for simulation update (1/F)
+    dots: (Dot & Drawable)[];
+    constraints: (Simulated & Drawable)[];
+
     constructor() {
 
         // performance monitor
@@ -54,17 +69,35 @@ export default class App {
         // setup scene
         this.setupScene();
 
-        const geometry = new THREE.BoxBufferGeometry(5, 5, 5);
-        const material = new THREE.MeshPhongMaterial({ color: 0xffff00 });
-        this.cube = new THREE.Mesh(geometry, material);
-        this.cube.position.y = 2;
-        this.scene.add(this.cube);
-
         // add Events Global
         window.addEventListener('resize', this.onWindowResize.bind(this), false);
 
+        this.setupPhysics();
+
+        for (let d of this.dots) d.addToscene(this.scene);
+        for (let c of this.constraints) c.addToscene(this.scene);
+
         this.param.play = true;
+        this.lastTime = Date.now();
         this.animate();
+    }
+
+    setupPhysics() {
+
+        this.h = 1/60;
+        this.dots = [];
+        this.constraints = [];
+        
+        const size: number = 10;
+        for (let i = 0; i < size; ++i)
+            this.dots.push(new Dot(1, new THREE.Vector3((-size/2+i)*5, 1, 0), 0x0000ff, (i == 0 || i == size-1) ? Dot.Type.Fix : Dot.Type.notFix));
+
+        for (let i = 0; i < size-1; ++i)
+            this.constraints.push(new Spring(this.dots[i], this.dots[i+1], 1/(this.h*this.h)));
+
+        // initial conditions
+        for (let i = 0; i < size; ++i)
+            this.dots[i].pos.y -= (size-Math.abs(size/2-i));
     }
 
     setupScene() {
@@ -114,28 +147,44 @@ export default class App {
     }
 
     animate() {
+        
         this.stats.begin();
-        const time = Date.now();
+        const now: number = Date.now();
         if (this.param.play) {
-            this.simulation(time);
+            this.simulation();
+        }
+        
+        const elapsedTime = now - this.lastTime;
+
+        const fpsInterval: number = 1000 / this.param.drawFps;
+        if(elapsedTime > fpsInterval) {
+            this.lastTime = now - (elapsedTime % fpsInterval);
+            this.renderer.render(this.scene, this.camera);
         }
 
-        this.renderer.render(this.scene, this.camera);
-
         this.stats.end();
+
+
+        //  it will not go higher than the refresh rate
         requestAnimationFrame(this.animate.bind(this));
     }
 
-    simulation(time: number) {
-        this.cube.rotation.y += 0.01;
-        this.cube.rotation.x += 0.02;
+    simulation() {
+
+        for (let d of this.dots) {
+            d.update(this.h, Dot.IntegrationType.Verlet);
+        }
+
+        for (let c of this.constraints) {
+            c.update(this.h);
+        }
     }
 
     private setupGui() {
         this.gui = new dat.GUI();
         const optionFolder = this.gui.addFolder('options');
         optionFolder.add(this.param, 'play').listen();
-        optionFolder.add(this.param, 'playPause');       
+        optionFolder.add(this.param, 'drawFps');
     }
 
 }
