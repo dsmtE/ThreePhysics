@@ -3,9 +3,9 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import dat from 'three/examples/jsm/libs/dat.gui.module.js';
 
-// Phisics class
-import { Dot } from './Dot';
-import { HookSpring, BrakeSpring } from './Spring';
+// Physics class
+import { Dot, DotDrawable } from './Dot';
+import { BrakeSpring } from './Spring';
 
 import { Drawable, Simulated } from './Interfaces';
 import { Vector3 } from 'three';
@@ -19,8 +19,8 @@ export default class App {
 
     cube: THREE.Mesh;
 
-    gui: dat.GUI;
-    stats: Stats;
+    gui;
+    stats;
 
     param = {
         // playPause: function() { this.param.play = !this.param.play;}.bind(this),
@@ -38,6 +38,11 @@ export default class App {
         viscosity: 0.05,
     }
 
+    materialProperties = {
+        wireframe: true,
+        'color': 0x200311
+    };
+
     lastTimeDisplay: number;
     lastTimeUpdate: number;
 
@@ -48,7 +53,7 @@ export default class App {
     constructor() {
 
         // performance monitor
-        this.stats = new Stats();
+        this.stats = Stats();
         document.body.appendChild(this.stats.dom);
 
         this.setupGui();
@@ -111,7 +116,8 @@ export default class App {
 
         const size: number = 10;
         for (let i = 0; i < size; ++i)
-            this.dots.push(new Dot(m, new THREE.Vector3((-size/2+i)*5, 1, 0), 0x0000ff, (i == 0 || i == size) ? Dot.Type.Fix : Dot.Type.notFix));
+            //this.dots.push(new Dot(m, new THREE.Vector3((-size/2+i)*5, 1, 0), (i == 0 || i == size-1) ? Dot.Type.Fix : Dot.Type.notFix));
+            this.dots.push(new DotDrawable(m, new THREE.Vector3((-size/2+i)*5, 1, 0), 0x0000ff, (i == 0 || i == size) ? Dot.Type.Fix : Dot.Type.notFix));
 
         for (let i = 0; i < size-1; ++i)
             // this.constraints.push(new HookSpring(this.dots[i], this.dots[i+1], this.param.stiffness * m * h*h ));
@@ -125,7 +131,7 @@ export default class App {
         for (let d of this.dots) d.addToscene(this.scene);
         for (let c of this.constraints) c.addToscene(this.scene);
 
-        this.simulation(0); // used to display and update objects properly once setup done
+        this.updateDrawables();
     }
 
     setupScene() {
@@ -195,10 +201,15 @@ export default class App {
                 d.addForce(this.param.windDir.clone().normalize().multiplyScalar(this.param.windStrength));
 
         for (let d of this.dots)
-            d.update(deltaTime, this.param.integrationType == 'Verlet' ? Dot.IntegrationType.Verlet : Dot.IntegrationType.EulerExp);
+            d.update(deltaTime);
 
         for (let c of this.constraints)
             c.update(deltaTime);
+    }
+
+    updateDrawables() {
+        for (let d of this.dots) d.updateDraw();
+        for (let c of this.constraints) c.updateDraw();
     }
 
     private setupGui() {
@@ -207,6 +218,13 @@ export default class App {
         optionFolder.add(this.param, 'play').listen();
         optionFolder.add(this.param, 'drawFps', 1, 120, 1);
         optionFolder.open();
+
+        
+        const matFolder = this.gui.addFolder('Material');
+        matFolder.add(this.materialProperties, 'wireframe');
+        matFolder.addColor(this.materialProperties, 'color').onChange((val) => {
+            clothMat.color.setHex(val);
+        });
 
         const PhysicFolder = this.gui.addFolder('physic options');
         PhysicFolder.add(this.param, 'physicUpdateFps', 1, 250, 1).onFinishChange(() => this.setupPhysics());

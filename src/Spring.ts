@@ -1,45 +1,60 @@
-import { LineBasicMaterial, BufferGeometry, BufferAttribute, Line, Vector3 } from 'three';
+import { LineBasicMaterial, BufferGeometry, BufferAttribute, Line, Vector3, Scene } from 'three';
 
 import { Dot } from "./Dot";
 import { Drawable, Simulated } from './Interfaces';
 
-export class HookSpring extends Drawable implements Simulated {
+
+export class HookSpring implements Drawable, Simulated {
     d1: Dot;
     d2: Dot;
 
     lineBufferPos: Float32Array; 
     stiffness: number; // raideur
     restLength: number; // L0
+
+    line: Line;
+    private scene: Scene;
     
     constructor(d1: Dot, d2: Dot, stiffness: number) {
-        super();
         this.d1 = d1;
         this.d2 = d2;
 
         this.stiffness = stiffness;
         this.restLength = this.d2.pos.clone().sub(this.d1.pos).length();
 
-        this.color = 0xffff00;
 
-        this.initDrawable();
+        this.lineBufferPos = new Float32Array(2 * 3);
+        const mat = new LineBasicMaterial( { color: 0xffff00 } );
+        const geom = new BufferGeometry();
+        geom.addAttribute('position', new BufferAttribute(this.lineBufferPos, 3));
+
+        this.line = new Line(geom, mat);
+
         this.updateDraw();   
     }
 
-    initDrawable() {
-        this.mat = new LineBasicMaterial( { color: this.color } );
-        // this.geom = new Geometry().setFromPoints([this.d1.pos, this.d2.pos]);
+    addToscene(scene: THREE.Scene): void {
+        if(this.scene == null) {
+            this.scene = scene;
+            this.scene.add(this.line);
+        }else {
+            console.log('already in one scene');
+        }
+    }
 
-        this.lineBufferPos = new Float32Array(2 * 3);
-        this.geom = new BufferGeometry();
-        this.geom.addAttribute('position', new BufferAttribute(this.lineBufferPos, 3));
-
-        this.model = new Line(this.geom, this.mat);
+    removeFromScene(): void {
+        if(this.scene != null) {
+            this.scene.remove(this.line);
+            this.scene = null;
+        }else {
+            console.log('not in any scene currently');
+        }
     }
 
     updateDraw() {
         this.d1.pos.toArray(this.lineBufferPos, 0);
         this.d2.pos.toArray(this.lineBufferPos, 3);
-        this.model.geometry.attributes.position.needsUpdate = true;
+        this.line.geometry.attributes.position.needsUpdate = true;
     }
 
     update(deltaTime: number): void {
@@ -61,45 +76,13 @@ export class HookSpring extends Drawable implements Simulated {
     }
 }
 
-export class BrakeSpring extends Drawable implements Simulated {
-    d1: Dot;
-    d2: Dot;
+export class BrakeSpring extends HookSpring {
 
-    lineBufferPos: Float32Array; 
-    stiffness: number; // raideur
     viscosity: number;
-    restLength: number; // L0
-    
+
     constructor(d1: Dot, d2: Dot, stiffness: number, viscosity: number) {
-        super();
-        this.d1 = d1;
-        this.d2 = d2;
-
-        this.stiffness = stiffness;
+        super(d1, d2, stiffness);
         this.viscosity = viscosity;
-        this.restLength = this.d2.pos.clone().sub(this.d1.pos).length();
-
-        this.color = 0xffff00;
-
-        this.initDrawable();
-        this.updateDraw();   
-    }
-
-    initDrawable() {
-        this.mat = new LineBasicMaterial( { color: this.color } );
-        // this.geom = new Geometry().setFromPoints([this.d1.pos, this.d2.pos]);
-
-        this.lineBufferPos = new Float32Array(2 * 3);
-        this.geom = new BufferGeometry();
-        this.geom.addAttribute('position', new BufferAttribute(this.lineBufferPos, 3));
-
-        this.model = new Line(this.geom, this.mat);
-    }
-
-    updateDraw() {
-        this.d1.pos.toArray(this.lineBufferPos, 0);
-        this.d2.pos.toArray(this.lineBufferPos, 3);
-        this.model.geometry.attributes.position.needsUpdate = true;
     }
 
     update(deltaTime: number): void {
@@ -118,6 +101,6 @@ export class BrakeSpring extends Drawable implements Simulated {
     }
   
     infos(): string {
-      return  `stiffness: ${this.stiffness}, viscosity: ${this.viscosity}, restLength: ${this.restLength}`
+      return  super.infos() + `, viscosity: ${this.viscosity}`
     }
-  }
+}

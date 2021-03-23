@@ -1,10 +1,8 @@
-// import {Color, Vector3} from 'three';
-
-import { Vector3, SphereGeometry, MeshPhongMaterial, Mesh } from "three";
+import { Vector3, SphereGeometry, MeshPhongMaterial, Mesh, BufferGeometry, Geometry, Material, Object3D, Scene } from "three";
 
 import { Drawable, Simulated } from './Interfaces';
 
-export class Dot extends Drawable {
+export class Dot implements Simulated {
 
     type?: number;
     mass?: number;
@@ -13,29 +11,23 @@ export class Dot extends Drawable {
     force?: Vector3;
 
     DotType?: Dot.Type;
+    IntegrationType: Dot.IntegrationType;
     
-    radius: number;
-    
-    constructor(mass: number, initPos: Vector3, color: number = 0x0000ff, DotType: Dot.Type = Dot.Type.notFix) {
-        super();
+    constructor(mass: number, initPos: Vector3, DotType: Dot.Type = Dot.Type.notFix, IntegrationType: Dot.IntegrationType = Dot.IntegrationType.Verlet) {
         this.mass = mass;
         this.pos = initPos;
         this.velocity = new Vector3();
         this.force =  new Vector3();
         
-        this.color = color;
-        this.radius = 0.5;
-    
         this.DotType = DotType;
-        
-        this.initDrawable();
+        this.IntegrationType = IntegrationType;
     }
 
     addForce(f: Vector3) { this.force.add(f); }
 
-    update(deltaTime: number, type: Dot.IntegrationType = Dot.IntegrationType.Verlet): void {
+    update(deltaTime: number): void {
         if(this.DotType == Dot.Type.notFix) {
-            switch (type) {
+            switch (this.IntegrationType) {
                 case Dot.IntegrationType.Verlet:
                     Dot.updateVerlet(this, deltaTime);
                     break;
@@ -46,20 +38,9 @@ export class Dot extends Drawable {
                     break;
             }
         }
-            this.updateDraw();
-        }
-    
-    initDrawable() {
-        this.geom = new SphereGeometry( this.radius, 6, 6 );
-        this.mat = new MeshPhongMaterial( {color: this.color} );
-        this.model = new Mesh(this.geom, this.mat);
     }
     
-    updateDraw() {
-        this.model.position.copy(this.pos);
-    }
-    
-    static updateVerlet(obj: Dot, deltaTime: number) {
+    static updateVerlet(obj: Dot, deltaTime: number) {    
         obj.velocity.add(obj.force.clone().multiplyScalar(deltaTime/obj.mass)); // integration vitesse : V(n+1) = V(n) + h * F(n)/m
         obj.pos.add(obj.velocity.clone().multiplyScalar(deltaTime)); // integration position : X(n+1) = X(n) + h * V(n+1)
         obj.force.set(0, 0, 0); // on vide le buffer de force
@@ -74,6 +55,48 @@ export class Dot extends Drawable {
     infos(): string {
         return `m: ${this.mass}, pos: ${this.pos}`
     }
+}
+
+export class DotDrawable extends Dot implements Drawable {
+
+    mesh: Mesh;
+
+    private scene: Scene;
+
+    radius: number;
+    
+    constructor(mass: number, initPos: Vector3, color: number = 0x0000ff, DotType: Dot.Type = Dot.Type.notFix) {
+        super(mass, initPos, DotType);
+        
+        const geom = new SphereGeometry( 0.5, 6, 6 );
+        const mat = new MeshPhongMaterial( {color: color} );
+        this.mesh = new Mesh(geom, mat);
+    }
+    
+    addToscene(scene: THREE.Scene): void {
+        if(this.scene == null) {
+            this.scene = scene;
+            this.scene.add(this.mesh);
+        }else {
+            console.log('already in one scene');
+        }
+    }
+
+    removeFromScene(): void {
+        if(this.scene != null) {
+            this.scene.remove(this.mesh);
+            this.scene = null;
+        }else {
+            console.log('not in any scene currently');
+        }
+    }
+
+    update(deltaTime: number): void {
+        super.update(deltaTime);
+        this.updateDraw();
+    }
+    
+    updateDraw() { this.mesh.position.copy(this.pos); }
 }
 
 export namespace Dot {
