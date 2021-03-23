@@ -31,6 +31,8 @@ export class Dot extends Drawable {
         this.initDrawable();
     }
 
+    addForce(f: Vector3) { this.force.add(f); }
+
     update(deltaTime: number, type: Dot.IntegrationType = Dot.IntegrationType.Verlet): void {
         if(this.DotType == Dot.Type.notFix) {
             switch (type) {

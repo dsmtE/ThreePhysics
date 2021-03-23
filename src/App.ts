@@ -7,6 +7,7 @@ import dat from 'three/examples/jsm/libs/dat.gui.module.js';
 import { Dot } from './Dot';
 import { Spring } from './Spring';
 import { Drawable, Simulated } from './Interfaces';
+import { Vector3 } from 'three';
 
 export default class App {
 
@@ -24,8 +25,12 @@ export default class App {
         // playPause: function() { this.param.play = !this.param.play;}.bind(this),
         play: false,
         drawFps: 60,
+
         physicUpdateFps: 100, // replacement for 1/h : timeStep for simulation update
         integrationType: 'Verlet',
+        enableWind: true,
+        windDir: new Vector3(0),
+        windStrength: 10,
     }
 
     lastTimeDisplay: number;
@@ -92,6 +97,8 @@ export default class App {
 
         this.dots = [];
         this.constraints = [];
+        this.param.windDir = new Vector3(1, 0, 0);
+        this.param.windStrength = 10;
         
         const size: number = 10;
         for (let i = 0; i < size; ++i)
@@ -162,6 +169,12 @@ export default class App {
 
     // deltaTime in seconds
     simulation(deltaTime: number) {
+
+        if (this.param.enableWind) {
+            for (let d of this.dots)
+                d.addForce(this.param.windDir.clone().normalize().multiplyScalar(this.param.windStrength * deltaTime));
+        }
+
         for (let d of this.dots)
             d.update(deltaTime, this.param.integrationType == 'Verlet' ? Dot.IntegrationType.Verlet : Dot.IntegrationType.EulerExp);
 
@@ -174,9 +187,17 @@ export default class App {
         const optionFolder = this.gui.addFolder('options');
         optionFolder.add(this.param, 'play').listen();
         optionFolder.add(this.param, 'drawFps', 1, 120, 1);
-        optionFolder.add(this.param, 'physicUpdateFps', 1, 250, 1);
-        optionFolder.add(this.param, 'integrationType', ["Verlet", "EulerExp"]);
         optionFolder.open();
+
+        const PhysicFolder = this.gui.addFolder('physic options');
+        PhysicFolder.add(this.param, 'physicUpdateFps', 1, 250, 1);
+        PhysicFolder.add(this.param, 'integrationType', ["Verlet", "EulerExp"]);
+        const wFolder = this.gui.addFolder('windDir');
+        wFolder.add(this.param.windDir, 'x');
+        wFolder.add(this.param.windDir, 'y');
+        wFolder.add(this.param.windDir, 'z');
+        PhysicFolder.add(this.param, 'windStrength');
+        PhysicFolder.open();
     }
 
 }
