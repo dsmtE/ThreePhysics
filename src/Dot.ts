@@ -7,20 +7,20 @@ import { Drawable, Simulated } from './Interfaces';
 export class Dot extends Drawable {
 
     type?: number;
-    masse?: number;
+    mass?: number;
     pos?: Vector3;
-    vit?: Vector3;
+    velocity?: Vector3;
     force?: Vector3;
 
     DotType?: Dot.Type;
     
     radius: number;
     
-    constructor(masse: number, initPos: Vector3, color: number = 0x0000ff, DotType: Dot.Type = Dot.Type.notFix) {
+    constructor(mass: number, initPos: Vector3, color: number = 0x0000ff, DotType: Dot.Type = Dot.Type.notFix) {
         super();
-        this.masse = masse;
+        this.mass = mass;
         this.pos = initPos;
-        this.vit = new Vector3();
+        this.velocity = new Vector3();
         this.force =  new Vector3();
         
         this.color = color;
@@ -60,19 +60,19 @@ export class Dot extends Drawable {
     }
     
     static updateVerlet(obj: Dot, deltaTime: number) {
-        obj.vit.add(obj.force.clone().multiplyScalar(deltaTime/obj.masse)); // integration vitesse : V(n+1) = V(n) + h * F(n)/m
-        obj.pos.add(obj.vit.clone().multiplyScalar(deltaTime)); // integration position : X(n+1) = X(n) + h * V(n+1)
+        obj.velocity.add(obj.force.clone().multiplyScalar(deltaTime/obj.mass)); // integration vitesse : V(n+1) = V(n) + h * F(n)/m
+        obj.pos.add(obj.velocity.clone().multiplyScalar(deltaTime)); // integration position : X(n+1) = X(n) + h * V(n+1)
         obj.force.set(0, 0, 0); // on vide le buffer de force
     }
     
     static updateEulerExp(obj: Dot, deltaTime: number) {
-        obj.pos.add(obj.vit.clone().multiplyScalar(deltaTime));
-        obj.vit.add(obj.force.clone().multiplyScalar(deltaTime/obj.masse));
+        obj.pos.add(obj.velocity.clone().multiplyScalar(deltaTime));
+        obj.velocity.add(obj.force.clone().multiplyScalar(deltaTime/obj.mass));
         obj.force.multiplyScalar(0);
     }
     
     infos(): string {
-        return `m: ${this.masse}, pos: ${this.pos}`
+        return `m: ${this.mass}, pos: ${this.pos}`
     }
 }
 

@@ -1,4 +1,3 @@
-
 export abstract class Drawable {
 
     protected color?: number;

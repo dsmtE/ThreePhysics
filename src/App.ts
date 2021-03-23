@@ -5,7 +5,8 @@ import dat from 'three/examples/jsm/libs/dat.gui.module.js';
 
 // Phisics class
 import { Dot } from './Dot';
-import { Spring } from './Spring';
+import { HookSpring, BrakeSpring } from './Spring';
+
 import { Drawable, Simulated } from './Interfaces';
 import { Vector3 } from 'three';
 
@@ -24,7 +25,7 @@ export default class App {
     param = {
         // playPause: function() { this.param.play = !this.param.play;}.bind(this),
         play: false,
-        drawFps: 60,
+        drawFps: 30,
 
         physicUpdateFps: 100, // replacement for 1/h : timeStep for simulation update
         integrationType: 'Verlet',
@@ -33,7 +34,8 @@ export default class App {
         gravityStrength: 9.81,
         windDir: new Vector3(0),
         windStrength: 10,
-        Ka: 1,
+        stiffness: 0.2,
+        viscosity: 0.05,
     }
 
     lastTimeDisplay: number;
@@ -109,10 +111,11 @@ export default class App {
 
         const size: number = 10;
         for (let i = 0; i < size; ++i)
-            this.dots.push(new Dot(m, new THREE.Vector3((-size/2+i)*5, 1, 0), 0x0000ff, (i == 0 || i == size-1) ? Dot.Type.Fix : Dot.Type.notFix));
+            this.dots.push(new Dot(m, new THREE.Vector3((-size/2+i)*5, 1, 0), 0x0000ff, (i == 0 || i == size) ? Dot.Type.Fix : Dot.Type.notFix));
 
         for (let i = 0; i < size-1; ++i)
-            this.constraints.push(new Spring(this.dots[i], this.dots[i+1], this.param.Ka * m * h*h ));
+            // this.constraints.push(new HookSpring(this.dots[i], this.dots[i+1], this.param.stiffness * m * h*h ));
+            this.constraints.push(new BrakeSpring(this.dots[i], this.dots[i+1], this.param.stiffness * m * h*h, this.param.viscosity * m * h));
 
         // initial conditions
         this.dots[Math.ceil(size/2)].pos.y -= 2;
@@ -185,7 +188,7 @@ export default class App {
         // macro-liaison using only loop without additional link object
         if(this.param.enableGravity)
             for (let d of this.dots)
-                d.addForce(new Vector3(0, -1, 0).multiplyScalar(d.masse * this.param.gravityStrength));
+                d.addForce(new Vector3(0, -1, 0).multiplyScalar(d.mass * this.param.gravityStrength));
 
         if (this.param.enableWind)
             for (let d of this.dots)
@@ -206,9 +209,10 @@ export default class App {
         optionFolder.open();
 
         const PhysicFolder = this.gui.addFolder('physic options');
-        PhysicFolder.add(this.param, 'physicUpdateFps', 1, 250, 1).onChange(() => this.setupPhysics());
+        PhysicFolder.add(this.param, 'physicUpdateFps', 1, 250, 1).onFinishChange(() => this.setupPhysics());
         PhysicFolder.add(this.param, 'integrationType', ["Verlet", "EulerExp"]);
-        PhysicFolder.add(this.param, 'Ka', 0.001, 1, 0.001).onChange(() => this.setupPhysics());
+        PhysicFolder.add(this.param, 'stiffness', 0.001, 1, 0.001).onFinishChange(() => this.setupPhysics());
+        PhysicFolder.add(this.param, 'viscosity', 0.001, 0.5, 0.001).onFinishChange(() => this.setupPhysics());
 
         //wind
         const wFolder = this.gui.addFolder('wind');
