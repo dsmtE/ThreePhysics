@@ -39,14 +39,12 @@ export class Spring extends Drawable implements Simulated {
     }
 
     updateDraw() {
-        console.log(this.model.geometry.attributes.position);
-        
         this.d1.pos.toArray(this.lineBufferPos, 0);
         this.d2.pos.toArray(this.lineBufferPos, 3);
         this.model.geometry.attributes.position.needsUpdate = true;
     }
 
-    update(h: number): void {
+    update(deltaTime: number): void {
         const d1Tod2: Vector3 = this.d2.pos.clone().sub(this.d1.pos);
 
         // stretch is the difference between the current distance and restLength

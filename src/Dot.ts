@@ -31,14 +31,14 @@ export class Dot extends Drawable {
         this.initDrawable();
     }
 
-    update(h: number, type: Dot.IntegrationType = Dot.IntegrationType.Verlet): void {
+    update(deltaTime: number, type: Dot.IntegrationType = Dot.IntegrationType.Verlet): void {
         if(this.DotType == Dot.Type.notFix) {
             switch (type) {
                 case Dot.IntegrationType.Verlet:
-                    Dot.updateVerlet(this, h);
+                    Dot.updateVerlet(this, deltaTime);
                     break;
                     case Dot.IntegrationType.EulerExp:
-                    Dot.updateEulerExp(this, h);
+                    Dot.updateEulerExp(this, deltaTime);
                     break;
                 default:
                     break;
@@ -57,15 +57,15 @@ export class Dot extends Drawable {
         this.model.position.copy(this.pos);
     }
     
-    static updateVerlet(obj: Dot, h: number) {
-        obj.vit.add(obj.force.clone().multiplyScalar(h/obj.masse)); // integration vitesse : V(n+1) = V(n) + h * F(n)/m
-        obj.pos.add(obj.vit.clone().multiplyScalar(h)); // integration position : X(n+1) = X(n) + h * V(n+1)
+    static updateVerlet(obj: Dot, deltaTime: number) {
+        obj.vit.add(obj.force.clone().multiplyScalar(deltaTime/obj.masse)); // integration vitesse : V(n+1) = V(n) + h * F(n)/m
+        obj.pos.add(obj.vit.clone().multiplyScalar(deltaTime)); // integration position : X(n+1) = X(n) + h * V(n+1)
         obj.force.set(0, 0, 0); // on vide le buffer de force
     }
     
-    static updateEulerExp(obj: Dot, h: number) {
-        obj.pos.add(obj.vit.clone().multiplyScalar(h));
-        obj.vit.add(obj.force.clone().multiplyScalar(h/obj.masse));
+    static updateEulerExp(obj: Dot, deltaTime: number) {
+        obj.pos.add(obj.vit.clone().multiplyScalar(deltaTime));
+        obj.vit.add(obj.force.clone().multiplyScalar(deltaTime/obj.masse));
         obj.force.multiplyScalar(0);
     }
     

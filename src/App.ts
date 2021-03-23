@@ -22,14 +22,16 @@ export default class App {
 
     param = {
         // playPause: function() { this.param.play = !this.param.play;}.bind(this),
-        play: true,
+        play: false,
         drawFps: 60,
+        physicUpdateFps: 100, // replacement for 1/h : timeStep for simulation update
+        integrationType: 'Verlet',
     }
 
-    lastTime: number;
+    lastTimeDisplay: number;
+    lastTimeUpdate: number;
 
     // Simulation data
-    h: number; // timeStep for simulation update (1/F)
     dots: (Dot & Drawable)[];
     constraints: (Simulated & Drawable)[];
 
@@ -73,18 +75,21 @@ export default class App {
         window.addEventListener('resize', this.onWindowResize.bind(this), false);
 
         this.setupPhysics();
+        this.simulation(0); // used to display and update objects properly once setup done
 
         for (let d of this.dots) d.addToscene(this.scene);
         for (let c of this.constraints) c.addToscene(this.scene);
 
-        this.param.play = true;
-        this.lastTime = Date.now();
-        this.animate();
+        this.lastTimeDisplay = Date.now();
+        this.lastTimeUpdate = Date.now();
+
+        setInterval(this.updateLoop.bind(this), 0);
+        
+        this.displayLoop();
     }
 
     setupPhysics() {
 
-        this.h = 1/60;
         this.dots = [];
         this.constraints = [];
         
@@ -93,11 +98,12 @@ export default class App {
             this.dots.push(new Dot(1, new THREE.Vector3((-size/2+i)*5, 1, 0), 0x0000ff, (i == 0 || i == size-1) ? Dot.Type.Fix : Dot.Type.notFix));
 
         for (let i = 0; i < size-1; ++i)
-            this.constraints.push(new Spring(this.dots[i], this.dots[i+1], 1/(this.h*this.h)));
+            this.constraints.push(new Spring(this.dots[i], this.dots[i+1], 50));
 
         // initial conditions
-        for (let i = 0; i < size; ++i)
-            this.dots[i].pos.y -= (size-Math.abs(size/2-i));
+        this.dots[Math.ceil(size/2)].pos.y -= 2;
+        // for (let i = 0; i < size; ++i)
+        //     this.dots[i].pos.y -= (size-Math.abs(size/2-i));
     }
 
     setupScene() {
@@ -110,27 +116,7 @@ export default class App {
         const dirLight = new THREE.DirectionalLight(0xffffff, 1);
         dirLight.position.set(50, 50, 50);
 
-        // dirLight.castShadow = true;
-
-        // dirLight.shadow.mapSize.width = 2048;
-        // dirLight.shadow.mapSize.height = 2048;
-
-        // const d = 200;
-        // dirLight.shadow.camera.left = - d;
-        // dirLight.shadow.camera.right = d;
-        // dirLight.shadow.camera.top = d;
-        // dirLight.shadow.camera.bottom = - d;
-        // dirLight.shadow.camera.far = 1000;
-
         this.scene.add(dirLight);
-
-        // ground
-        // const groundGeom: THREE.PlaneBufferGeometry = new THREE.PlaneBufferGeometry(400, 400);
-        // const groundMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-        // const ground = new THREE.Mesh( groundGeom, groundMat);
-        // ground.rotation.x = -Math.PI /2;
-        // ground.receiveShadow = true;
-        // this.scene.add(ground);
 
         // grid
         const grid = new THREE.GridHelper(400, 80, 0x000000, 0x000000);
@@ -146,45 +132,51 @@ export default class App {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    animate() {
-        
-        this.stats.begin();
+    updateLoop() {
         const now: number = Date.now();
-        if (this.param.play) {
-            this.simulation();
-        }
-        
-        const elapsedTime = now - this.lastTime;
+        const elapsedTime = now - this.lastTimeUpdate;
 
-        const fpsInterval: number = 1000 / this.param.drawFps;
-        if(elapsedTime > fpsInterval) {
-            this.lastTime = now - (elapsedTime % fpsInterval);
+        const deltaTime: number = 1000 / this.param.physicUpdateFps;
+        if(elapsedTime > deltaTime) {
+            this.lastTimeUpdate = now - (elapsedTime % deltaTime);
+
+            this.stats.begin();
+            if (this.param.play) this.simulation(deltaTime/1000);
+            this.stats.end();
+        }
+    }
+
+    displayLoop() {
+        const now: number = Date.now();
+        const elapsedTime = now - this.lastTimeDisplay;
+
+        const deltaTime: number = 1000 / this.param.drawFps;
+        if(elapsedTime > deltaTime) {
+            this.lastTimeDisplay = now - (elapsedTime % deltaTime);
             this.renderer.render(this.scene, this.camera);
         }
 
-        this.stats.end();
-
-
         //  it will not go higher than the refresh rate
-        requestAnimationFrame(this.animate.bind(this));
+        requestAnimationFrame(this.displayLoop.bind(this));
     }
 
-    simulation() {
+    // deltaTime in seconds
+    simulation(deltaTime: number) {
+        for (let d of this.dots)
+            d.update(deltaTime, this.param.integrationType == 'Verlet' ? Dot.IntegrationType.Verlet : Dot.IntegrationType.EulerExp);
 
-        for (let d of this.dots) {
-            d.update(this.h, Dot.IntegrationType.Verlet);
-        }
-
-        for (let c of this.constraints) {
-            c.update(this.h);
-        }
+        for (let c of this.constraints)
+            c.update(deltaTime);
     }
 
     private setupGui() {
         this.gui = new dat.GUI();
         const optionFolder = this.gui.addFolder('options');
         optionFolder.add(this.param, 'play').listen();
-        optionFolder.add(this.param, 'drawFps');
+        optionFolder.add(this.param, 'drawFps', 1, 120, 1);
+        optionFolder.add(this.param, 'physicUpdateFps', 1, 250, 1);
+        optionFolder.add(this.param, 'integrationType', ["Verlet", "EulerExp"]);
+        optionFolder.open();
     }
 
 }
