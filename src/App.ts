@@ -102,7 +102,6 @@ export default class App {
         
         this.dots = [];
         this.constraints = [];
-        this.param.windDir = new Vector3(1, 0, 0);
         this.param.windStrength = 10;
         
         const m: number = 1;
@@ -186,11 +185,11 @@ export default class App {
         // macro-liaison using only loop without additional link object
         if(this.param.enableGravity)
             for (let d of this.dots)
-                d.addForce(new Vector3(0, -1, 0).multiplyScalar(this.param.gravityStrength * deltaTime));
+                d.addForce(new Vector3(0, -1, 0).multiplyScalar(d.masse * this.param.gravityStrength));
 
         if (this.param.enableWind)
             for (let d of this.dots)
-                d.addForce(this.param.windDir.clone().normalize().multiplyScalar(this.param.windStrength * deltaTime));
+                d.addForce(this.param.windDir.clone().normalize().multiplyScalar(this.param.windStrength));
 
         for (let d of this.dots)
             d.update(deltaTime, this.param.integrationType == 'Verlet' ? Dot.IntegrationType.Verlet : Dot.IntegrationType.EulerExp);
@@ -209,20 +208,20 @@ export default class App {
         const PhysicFolder = this.gui.addFolder('physic options');
         PhysicFolder.add(this.param, 'physicUpdateFps', 1, 250, 1).onChange(() => this.setupPhysics());
         PhysicFolder.add(this.param, 'integrationType', ["Verlet", "EulerExp"]);
-        PhysicFolder.add(this.param, 'Ka', 0.01, 2, 0.01).onChange(() => this.setupPhysics());
+        PhysicFolder.add(this.param, 'Ka', 0.001, 1, 0.001).onChange(() => this.setupPhysics());
 
         //wind
         const wFolder = this.gui.addFolder('wind');
-        wFolder.add(this.param, 'enableWind');
-        wFolder.add(this.param, 'windStrength');
-        wFolder.add(this.param.windDir, 'x').name('qsfq');
+        wFolder.add(this.param, 'enableWind').name('Enable');
+        wFolder.add(this.param, 'windStrength').name('Enable');
+        wFolder.add(this.param.windDir, 'x');
         wFolder.add(this.param.windDir, 'y');
         wFolder.add(this.param.windDir, 'z');
 
         //gravity
         const gFolder = this.gui.addFolder('gravity');
-        gFolder.add(this.param, 'enableGravity');
-        gFolder.add(this.param, 'gravityStrength', 0, 100, 0.1);
+        gFolder.add(this.param, 'enableGravity').name('Enable');
+        gFolder.add(this.param, 'gravityStrength', 0, 20, 0.01).name('Enable');
 
         PhysicFolder.open();
     }
