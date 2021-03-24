@@ -25,6 +25,8 @@ export class Dot implements Simulated {
 
     addForce(f: Vector3) { this.force.add(f); }
 
+    setMass(m: number) { this.mass = m; }
+
     update(deltaTime: number): void {
         if(this.DotType == Dot.Type.notFix) {
             switch (this.IntegrationType) {

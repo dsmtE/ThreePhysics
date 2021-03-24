@@ -33,6 +33,8 @@ export class HookSpring implements Drawable, Simulated {
         this.updateDraw();   
     }
 
+    setStiffness(s: number) { this.stiffness = s; }
+
     addToscene(scene: THREE.Scene): void {
         if(this.scene == null) {
             this.scene = scene;
@@ -84,6 +86,8 @@ export class BrakeSpring extends HookSpring {
         super(d1, d2, stiffness);
         this.viscosity = viscosity;
     }
+
+    setViscosity(v: number) { this.viscosity = v; }
 
     update(deltaTime: number): void {
         const d1Tod2: Vector3 = this.d2.pos.clone().sub(this.d1.pos);
