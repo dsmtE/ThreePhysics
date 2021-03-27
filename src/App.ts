@@ -7,9 +7,10 @@ import dat from 'three/examples/jsm/libs/dat.gui.module.js';
 import { Dot, DotDrawable } from './Dot';
 import { BrakeSpring } from './Spring';
 
-import { Drawable, Simulated } from './Interfaces';
+import { SimuScene } from './Interfaces';
 import { Vector3 } from 'three';
 import { Flag } from './Flag';
+import { FlagScene } from './Scenes/Scene';
 
 export default class App {
 
@@ -30,35 +31,21 @@ export default class App {
 
         physicUpdateFps: 100, // replacement for 1/h : timeStep for simulation update
         integrationType: 'Verlet',
-        enableGravity: true,
-        enableWind: true,
-        gravityStrength: 9.81,
-        windDir: new Vector3(0),
-        windStrength: 10,
-        stiffness: 0.2,
-        viscosity: 0.05,
     }
-
-    materialProperties = {
-        wireframe: true,
-        'color': 0x200311
-    };
-
     lastTimeDisplay: number;
     lastTimeUpdate: number;
 
     // Simulation data
     // dots: (Dot & Drawable)[];
     // constraints: (Simulated & Drawable)[];
-    flag: Flag;
+
+    simeScene: SimuScene;
 
     constructor() {
 
         // performance monitor
         this.stats = Stats();
         document.body.appendChild(this.stats.dom);
-
-        this.setupGui();
 
         // create Scene
         this.scene = new THREE.Scene();
@@ -91,51 +78,17 @@ export default class App {
         // add Events Global
         window.addEventListener('resize', this.onWindowResize.bind(this), false);
 
-        // this.dots = [];
-        // this.constraints = [];
-
-        this.setupPhysics();
+        this.simeScene = new FlagScene(10, 10, 50, 50, 1, 0.2, 0.05, this.param.physicUpdateFps);
+        this.simeScene.addToscene(this.scene);
 
         this.lastTimeDisplay = Date.now();
         this.lastTimeUpdate = Date.now();
 
+        this.setupGui();
+
         setInterval(this.updateLoop.bind(this), 0);
         
         this.displayLoop();
-    }
-
-    setupPhysics() {
-        // clean if needed
-        // this.dots.forEach(d => d.removeFromScene());
-        // this.constraints.forEach(c => c.removeFromScene());
-        
-        // this.dots = [];
-        // this.constraints = [];
-        this.param.windStrength = 1;
-        
-        const m: number = 1;
-        const h: number = this.param.physicUpdateFps;
-
-        // const size: number = 10;
-        // for (let i = 0; i < size; ++i)
-        //     this.dots.push(new DotDrawable(m, new THREE.Vector3((-size/2+i)*5, 1, 0), 0x0000ff, (i == 0 || i == size) ? Dot.Type.Fix : Dot.Type.notFix));
-
-        // for (let i = 0; i < size-1; ++i)
-        //     this.constraints.push(new BrakeSpring(this.dots[i], this.dots[i+1], this.param.stiffness * m * h * h, this.param.viscosity * m * h));
-
-        // // initial conditions
-        // this.dots[Math.ceil(size/2)].pos.y -= 2;
-        // // for (let i = 0; i < size; ++i)
-        // //     this.dots[i].pos.y -= (size-Math.abs(size/2-i));
-
-        // for (let d of this.dots) d.addToscene(this.scene);
-        // for (let c of this.constraints) c.addToscene(this.scene);
-
-        // TODO add scene managment
-
-        this.flag = new Flag(10, 10, 6, 6, m, this.param.stiffness, this.param.viscosity, h);
-        this.flag.addToscene(this.scene);
-        this.updateDrawables();
     }
 
     setupScene() {
@@ -194,68 +147,19 @@ export default class App {
 
     // deltaTime in seconds
     simulation(deltaTime: number) {
-        
-        // // macro-liaison using only loop without additional link object
-        // if(this.param.enableGravity)
-        //     for (let d of this.dots)
-        //         d.addForce(new Vector3(0, -1, 0).multiplyScalar(d.mass * this.param.gravityStrength));
-
-        // if (this.param.enableWind)
-        //     for (let d of this.dots)
-        //         d.addForce(this.param.windDir.clone().normalize().multiplyScalar(this.param.windStrength));
-
-        // for (let d of this.dots)
-        //     d.update(deltaTime);
-
-        // for (let c of this.constraints)
-        //     c.update(deltaTime);
-
-        this.flag.applyGravity(this.param.gravityStrength);
-        // wind
-        this.flag.addForce(this.param.windDir.clone().normalize().multiplyScalar(this.param.windStrength));
-
-        this.flag.update(deltaTime);
+        this.simeScene.update(deltaTime);
     }
 
-    updateDrawables() {
-        // for (let d of this.dots) d.updateDraw();
-        // for (let c of this.constraints) c.updateDraw();
-    }
 
     private setupGui() {
         this.gui = new dat.GUI();
         const optionFolder = this.gui.addFolder('options');
         optionFolder.add(this.param, 'play').listen();
         optionFolder.add(this.param, 'drawFps', 1, 120, 1);
+        optionFolder.add(this.param, 'physicUpdateFps', 1, 200, 1).onFinishChange(v => this.simeScene.setPhysicFps(v));
         optionFolder.open();
 
-        
-        const matFolder = this.gui.addFolder('Material');
-        matFolder.add(this.materialProperties, 'wireframe').onChange(w => this.flag.setWireframe(w));
-        matFolder.addColor(this.materialProperties, 'color').onChange((val) => {
-            clothMat.color.setHex(val);
-        });
-
-        const PhysicFolder = this.gui.addFolder('physic options');
-        PhysicFolder.add(this.param, 'physicUpdateFps', 1, 250, 1).onFinishChange(() => this.setupPhysics());
-        PhysicFolder.add(this.param, 'integrationType', ["Verlet", "EulerExp"]);
-        PhysicFolder.add(this.param, 'stiffness', 0.001, 1, 0.001).onFinishChange(s => this.flag.setStiffness(s));
-        PhysicFolder.add(this.param, 'viscosity', 0.001, 0.5, 0.001).onFinishChange(v => this.flag.setViscosity(v));
-
-        //wind
-        const wFolder = this.gui.addFolder('wind');
-        wFolder.add(this.param, 'enableWind').name('Enable');
-        wFolder.add(this.param, 'windStrength').name('Strength');
-        wFolder.add(this.param.windDir, 'x');
-        wFolder.add(this.param.windDir, 'y');
-        wFolder.add(this.param.windDir, 'z');
-
-        //gravity
-        const gFolder = this.gui.addFolder('gravity');
-        gFolder.add(this.param, 'enableGravity').name('Enable');
-        gFolder.add(this.param, 'gravityStrength', 0, 20, 0.01).name('Strength');
-
-        PhysicFolder.open();
+        this.simeScene.guiDisplay(this.gui);
     }
 
 }

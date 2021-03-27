@@ -21,6 +21,9 @@ export class Flag implements Drawable, Simulated {
     viscosity: number;
     mass: number;
     physicFps: number;
+
+    ShearRatio: number;
+    BendRatio: number;
     
     constructor(width: number, height: number, widthSegments: number, heightSegments: number, mass: number, stiffness: number, viscosity: number, physicFps: number, wireframe: boolean = true) {
         
@@ -157,6 +160,14 @@ export class Flag implements Drawable, Simulated {
         const S: number = this.stiffness * this.mass * this.physicFps * this.physicFps;
         const V: number = this.viscosity * this.mass * this.physicFps;
         this.dots.forEach(d => d.setMass(m));
+        this.springs.forEach(s => s.setStiffness(S));
+        this.springs.forEach(s => s.setViscosity(V));
+    }
+
+    setPhysicFps(f: number) {
+        this.physicFps = f;
+        const S: number = this.stiffness * this.mass * this.physicFps * this.physicFps;
+        const V: number = this.viscosity * this.mass * this.physicFps;
         this.springs.forEach(s => s.setStiffness(S));
         this.springs.forEach(s => s.setViscosity(V));
     }
