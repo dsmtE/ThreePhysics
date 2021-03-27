@@ -22,8 +22,17 @@ export class Flag implements Drawable, Simulated {
     mass: number;
     physicFps: number;
 
-    ShearRatio: number;
-    BendRatio: number;
+    enableShear: boolean;
+    ShearRatio: {
+        stiffness: number,
+        viscosity:number,
+    };
+
+    enableBend: boolean;
+    BendRatio: {
+        stiffness: number,
+        viscosity:number,
+    };
     
     constructor(width: number, height: number, widthSegments: number, heightSegments: number, mass: number, stiffness: number, viscosity: number, physicFps: number, wireframe: boolean = true) {
         
@@ -31,6 +40,18 @@ export class Flag implements Drawable, Simulated {
         this.stiffness = stiffness;
         this.viscosity = viscosity;
         this.physicFps = physicFps;
+
+        this.enableShear = true;
+        this.ShearRatio = {
+            stiffness: 0.2,
+            viscosity: 0.02,
+        };
+        
+        this.enableBend = true;
+        this.BendRatio = {
+            stiffness: 0.2,
+            viscosity: 0.02,
+        };
 
         this.geom = new PlaneBufferGeometry(width, height, widthSegments, heightSegments);
         const mat = new MeshStandardMaterial({ 
@@ -40,12 +61,12 @@ export class Flag implements Drawable, Simulated {
 
         this.mesh = new Mesh(this.geom, mat);
 
-        this.setupDots();
-        this.setupConstraints();
+        this.updateDots();
+        this.updateConstraints();
         this.updateDraw();
     }
 
-    private setupDots() {
+    updateDots() {
         this.dots = [];
 
         const posAttributs = this.geom.getAttribute('position');
@@ -63,14 +84,14 @@ export class Flag implements Drawable, Simulated {
 			}
 		}
     }
-    private setupConstraints() {
+
+    updateConstraints() {
         this.springs = [];
 
         const {widthSegments, heightSegments} = this.geom.parameters;
 
         let SFactor: number = this.mass * this.physicFps * this.physicFps;
         let VFactor: number = this.viscosity * this.mass * this.physicFps;
-
         
         // Structural constraints
         for (let h=0; h < heightSegments+1; ++h) {
@@ -82,30 +103,34 @@ export class Flag implements Drawable, Simulated {
                     this.springs.push(new BrakeSpring(this.dots[i], this.dots[i+(widthSegments+1)], this.stiffness * SFactor, this.viscosity * VFactor));
             }
         }
-        
-        SFactor /= 20;
-        VFactor /= 20;
 
         // Shear constraints
-        for (let h=0; h < heightSegments; ++h) {
-			for (let w=0; w < widthSegments; ++w) {
-                const i = w + h * (widthSegments+1);
-                this.springs.push(new BrakeSpring(this.dots[i], this.dots[i+1+widthSegments], this.stiffness * SFactor, this.viscosity * VFactor));
-                this.springs.push(new BrakeSpring(this.dots[i+1], this.dots[i+widthSegments], this.stiffness * SFactor, this.viscosity * VFactor));
+        if(this.enableShear) {
+            for (let h=0; h < heightSegments; ++h) {
+                for (let w=0; w < widthSegments; ++w) {
+                    const i = w + h * (widthSegments+1);
+                    this.springs.push(new BrakeSpring(this.dots[i], this.dots[i+1+widthSegments], 
+                        this.stiffness * SFactor * this.ShearRatio.stiffness, this.viscosity * VFactor * this.ShearRatio.viscosity));
+                    this.springs.push(new BrakeSpring(this.dots[i+1], this.dots[i+widthSegments], 
+                        this.stiffness * SFactor * this.ShearRatio.stiffness, this.viscosity * VFactor * this.ShearRatio.viscosity));
+                }
             }
         }
 
-        SFactor /= 40;
-        VFactor /= 40;
-
         // Bend constraints
-        for (let h=0; h < heightSegments+1; ++h) {
-			for (let w=0; w < widthSegments+1; ++w) {
-                const i = w + h * widthSegments;
-                if(w+2 < widthSegments)
-                    this.springs.push(new BrakeSpring(this.dots[i], this.dots[i+2], this.stiffness * SFactor, this.viscosity * VFactor));
-                if(h+2 < widthSegments)
-                    this.springs.push(new BrakeSpring(this.dots[i], this.dots[i+ 2*widthSegments], this.stiffness * SFactor, this.viscosity * VFactor));
+        if(this.enableBend) {
+            for (let h=0; h < heightSegments+1; ++h) {
+                for (let w=0; w < widthSegments+1; ++w) {
+                    const i = w + h * widthSegments;
+                    if(w+2 < widthSegments) {
+                        this.springs.push(new BrakeSpring(this.dots[i], this.dots[i+2], 
+                            this.stiffness * SFactor * this.BendRatio.stiffness, this.viscosity * VFactor *  this.BendRatio.viscosity));
+                        }
+                    if(h+2 < widthSegments) {
+                        this.springs.push(new BrakeSpring(this.dots[i], this.dots[i+ 2*widthSegments], 
+                            this.stiffness * SFactor * this.BendRatio.stiffness, this.viscosity * VFactor *  this.BendRatio.viscosity));
+                        }
+                }
             }
         }
 
