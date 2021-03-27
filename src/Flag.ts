@@ -107,9 +107,14 @@ export class Flag implements Drawable, Simulated {
 			for (let w=0; w < widthSegments+1; ++w) {
 				const i = w + h * (widthSegments+1);
 				const pos = new Vector3(posAttributs.getX(i), posAttributs.getY(i), posAttributs.getZ(i));
-                this.dots.push(new Dot(this.mass, pos, w == 0 ? Dot.Type.Fix : Dot.Type.notFix));
+                this.dots.push(new Dot(this.massCompute(this.mass, w, h, widthSegments, heightSegments), pos, w == 0 ? Dot.Type.Fix : Dot.Type.notFix));
 			}
 		}
+    }
+
+    private massCompute(mass: number, w: number, h: number, widthSegments:number, heightSegments: number) {
+        return mass * (1 - 0.5 * Math.pow(w/widthSegments, 2));
+        
     }
 
     updateConstraints() {
@@ -227,14 +232,21 @@ export class Flag implements Drawable, Simulated {
 
     setMass(m: number) {
         this.mass = m;
-        this.dots.forEach(d => d.setMass(m));
+
+        const { widthSegments, heightSegments} = this.geom.parameters;
+
+        for (let i = 0; i < this.dots.length; ++i) {
+            const w = i % (widthSegments+1);
+            const h = Math.floor( i / (widthSegments+1));
+            this.dots[i].setMass(this.massCompute(this.mass, w, h, widthSegments, heightSegments));
+        }
+        // this.dots.forEach(d => d.setMass(m));
 
         this.updateStringsProperties();
     }
 
     setPhysicFps(f: number) {
         this.physicFps = f;
-
         this.updateStringsProperties();
     }
 
@@ -256,6 +268,7 @@ export class Flag implements Drawable, Simulated {
     guiDisplay(guiParent: any, folderName: string = 'flag') {
 
         const folder = guiParent.addFolder(folderName);
+        folder.open();
 
         const matFolder = folder.addFolder('Material');
         
@@ -267,6 +280,7 @@ export class Flag implements Drawable, Simulated {
         });
 
         const PhysicFolder = folder.addFolder('Physic options');
+        PhysicFolder.open();
 
         PhysicFolder.add(this, 'mass', 0.1, 5, 0.01).onFinishChange(v => this.setMass(v));
         PhysicFolder.add(this, 'stiffness', 0.001, 0.5, 0.001).onFinishChange(v => this.setStiffness(v));

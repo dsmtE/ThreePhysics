@@ -18,11 +18,11 @@ export class FlagScene extends SimuScene {
         super();
         
         this.enableWind = true;
-        this.windAmp = new Vector3(1, 1, 1);
-        this.windFreq = new Vector3(1, 1, 1);
+        this.windAmp = new Vector3(5, 5, 5);
+        this.windFreq = new Vector3(3.1, 4.2, 2.7);
 
         this.enableGravity = true;
-        this.gravityStrength = 9.81;
+        this.gravityStrength = 0.4;
 
         this.flag = new Flag(width, height, widthSegments, heightSegments, mass, stiffness, viscosity, physicFps);
     }
@@ -30,7 +30,7 @@ export class FlagScene extends SimuScene {
     update(deltaTime: number): void {
 
         if(this.enableGravity)
-            this.flag.applyGravity(9.81);
+            this.flag.applyGravity(this.gravityStrength);
 
         if(this.enableWind)
             this.flag.addForce(this.computeWind());
@@ -49,22 +49,24 @@ export class FlagScene extends SimuScene {
 
     removeFromScene(): void { this.flag.removeFromScene(); }
 
-    setPhysicFps(f: number) { this.flag.setPhysicFps(f); }
+    setPhysicFps(v: number) { this.flag.setPhysicFps(v); }
 
     guiDisplay(guiParent: any, folderName: string = 'scene') {
 
         const folder = guiParent.addFolder(folderName);
-        
+        folder.open();
+
         //wind
         const wFolder = folder.addFolder('wind');
+        wFolder.open();
         wFolder.add(this, 'enableWind').name('Enable');
         const wFreqFolder = wFolder.addFolder('windFreq');
         ['x', 'y', 'z'].forEach(k => wFreqFolder.add(this.windFreq, k, 0, 10, 0.1));
         const wAmpFolder = wFolder.addFolder('windAmp');
         ['x', 'y', 'z'].forEach(k => wAmpFolder.add(this.windAmp, k, 0, 10, 0.1));
-        
         //gravity
         const gFolder = folder.addFolder('gravity'); 
+        gFolder.open();
         gFolder.add(this, 'enableGravity').name('Enable');
         gFolder.add(this, 'gravityStrength', 0, 20, 0.01).name('Strength');
 
