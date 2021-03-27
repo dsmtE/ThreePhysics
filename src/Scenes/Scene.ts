@@ -14,8 +14,6 @@ export class FlagScene extends SimuScene {
     enableGravity: boolean;
     gravityStrength: number;
 
-    flagColor: number;
-
     constructor(width: number, height: number, widthSegments: number, heightSegments: number, mass: number, stiffness: number, viscosity: number, physicFps: number) {
         super();
         
@@ -27,8 +25,6 @@ export class FlagScene extends SimuScene {
         this.gravityStrength = 9.81;
 
         this.flag = new Flag(width, height, widthSegments, heightSegments, mass, stiffness, viscosity, physicFps);
-
-        this.flagColor = this.flag.mesh.material.color.getHex();
     }
 
     update(deltaTime: number): void {
@@ -55,32 +51,24 @@ export class FlagScene extends SimuScene {
 
     setPhysicFps(f: number) { this.flag.setPhysicFps(f); }
 
-    guiDisplay(guiParent: any) {
+    guiDisplay(guiParent: any, folderName: string = 'scene') {
 
-        const sceneFolder = guiParent.addFolder('flagScene');
-
-        const matFolder = sceneFolder.addFolder('Flag material');
-
-        matFolder.add(this.flag.mesh.material, 'wireframe');
-        matFolder.addColor(this, 'flagColor').onChange(c => this.flag.mesh.material.color.setHex(c) );
-
-        const PhysicFolder = sceneFolder.addFolder('Physic options');
-
-        PhysicFolder.add(this.flag, 'stiffness', 0.001, 1, 0.001).onFinishChange(s => this.flag.setStiffness(s));
-        PhysicFolder.add(this.flag, 'viscosity', 0.001, 0.5, 0.001).onFinishChange(v => this.flag.setViscosity(v));
-
+        const folder = guiParent.addFolder(folderName);
+        
         //wind
-        const wFolder = sceneFolder.addFolder('wind');
+        const wFolder = folder.addFolder('wind');
         wFolder.add(this, 'enableWind').name('Enable');
         const wFreqFolder = wFolder.addFolder('windFreq');
-        ['x', 'y', 'z'].forEach(k => wFreqFolder.add(this.windFreq, k, 0, 100, 0.1));
+        ['x', 'y', 'z'].forEach(k => wFreqFolder.add(this.windFreq, k, 0, 10, 0.1));
         const wAmpFolder = wFolder.addFolder('windAmp');
-        ['x', 'y', 'z'].forEach(k => wAmpFolder.add(this.windAmp, k, 0, 100, 0.1));
-
+        ['x', 'y', 'z'].forEach(k => wAmpFolder.add(this.windAmp, k, 0, 10, 0.1));
+        
         //gravity
-        const gFolder = sceneFolder.addFolder('gravity'); 
+        const gFolder = folder.addFolder('gravity'); 
         gFolder.add(this, 'enableGravity').name('Enable');
         gFolder.add(this, 'gravityStrength', 0, 20, 0.01).name('Strength');
+
+        this.flag.guiDisplay(folder);
     }
 
 }
