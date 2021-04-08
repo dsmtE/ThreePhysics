@@ -1,5 +1,5 @@
 
-import { Vector3, PlaneBufferGeometry, MeshStandardMaterial, DoubleSide, Mesh, Scene, TextureLoader, RepeatWrapping } from "three";
+import { Vector3, BufferGeometry, MeshStandardMaterial, DoubleSide, Mesh, Scene, TextureLoader, RepeatWrapping, ParametricBufferGeometry} from "three";
 
 import { Drawable, Simulated } from './Interfaces';
 
@@ -12,7 +12,9 @@ import blueWoolImg from './assets/blueWool.jpg';
 import redFabricImg from './assets/redFabric.jpg';
 export class Flag implements Drawable, Simulated {
 
-    geom: PlaneBufferGeometry;
+    widthSegments: number;
+    heightSegments: number;
+    geom: BufferGeometry;
     mesh: Mesh;
     private scene: Scene;
 
@@ -42,8 +44,10 @@ export class Flag implements Drawable, Simulated {
         viscosity:number,
     };
     
-    constructor(width: number, height: number, widthSegments: number, heightSegments: number, mass: number, stiffness: number, viscosity: number, physicFps: number, wireframe: boolean = true) {
+    constructor(pos: Vector3, width: number, height: number, widthSegments: number, heightSegments: number, mass: number, stiffness: number, viscosity: number, physicFps: number, wireframe: boolean = true) {
         
+        this.widthSegments = widthSegments;
+        this.heightSegments = heightSegments;
         this.mass = mass;
         this.stiffness = stiffness;
         this.viscosity = viscosity;
@@ -61,9 +65,12 @@ export class Flag implements Drawable, Simulated {
             viscosity: 0.02,
         };
 
-        this.geom = new PlaneBufferGeometry(width, height, widthSegments, heightSegments);
+        const yPlane = ( width: number, height: number ) => ( u: number, v: number, target: Vector3 ) => target.set(u * width, v * height, 0);
+
+        this.geom = new ParametricBufferGeometry(yPlane(width, height), widthSegments, heightSegments);
+
         const mat = new MeshStandardMaterial({ 
-            color: 0xffffff, 
+            color: 0x000000, 
             side: DoubleSide,
             wireframe: wireframe,
             map: null} );
@@ -90,6 +97,8 @@ export class Flag implements Drawable, Simulated {
 
         this.mesh = new Mesh(this.geom, mat);
 
+        this.mesh.position.copy(pos);
+
         this.flagColor = this.mesh.material.color.getHex();
 
         this.updateDots();
@@ -101,13 +110,12 @@ export class Flag implements Drawable, Simulated {
         this.dots = [];
 
         const posAttributs = this.geom.getAttribute('position');
-        const {widthSegments, heightSegments} = this.geom.parameters;
 
-        for (let h=0; h < heightSegments+1; ++h) {
-			for (let w=0; w < widthSegments+1; ++w) {
-				const i = w + h * (widthSegments+1);
+        for (let h=0; h < this.heightSegments+1; ++h) {
+			for (let w=0; w < this.widthSegments+1; ++w) {
+				const i = w + h * (this.widthSegments+1);
 				const pos = new Vector3(posAttributs.getX(i), posAttributs.getY(i), posAttributs.getZ(i));
-                this.dots.push(new Dot(this.massCompute(this.mass, w, h, widthSegments, heightSegments), pos, w == 0 ? Dot.Type.Fix : Dot.Type.notFix));
+                this.dots.push(new Dot(this.massCompute(this.mass, w, h, this.widthSegments, this.heightSegments), pos, w == 0 ? Dot.Type.Fix : Dot.Type.notFix));
 			}
 		}
     }
@@ -119,32 +127,30 @@ export class Flag implements Drawable, Simulated {
 
     updateConstraints() {
         
-        const {widthSegments, heightSegments} = this.geom.parameters;
-        
         let SFactor: number = this.mass * this.physicFps * this.physicFps;
         let VFactor: number = this.viscosity * this.mass * this.physicFps;
         
         // Structural constraints
         this.structuralSprings = [];
-        for (let h=0; h < heightSegments+1; ++h) {
-			for (let w=0; w < widthSegments+1; ++w) {
-                const i = w + h * (widthSegments+1);
-                if(w+1 < (widthSegments+1))
+        for (let h=0; h < this.heightSegments+1; ++h) {
+			for (let w=0; w < this.widthSegments+1; ++w) {
+                const i = w + h * (this.widthSegments+1);
+                if(w+1 < (this.widthSegments+1))
                     this.structuralSprings.push(new BrakeSpring(this.dots[i], this.dots[i+1], this.stiffness * SFactor, this.viscosity * VFactor));
-                if(h+1 < (heightSegments+1))
-                    this.structuralSprings.push(new BrakeSpring(this.dots[i], this.dots[i+(widthSegments+1)], this.stiffness * SFactor, this.viscosity * VFactor));
+                if(h+1 < (this.heightSegments+1))
+                    this.structuralSprings.push(new BrakeSpring(this.dots[i], this.dots[i+(this.widthSegments+1)], this.stiffness * SFactor, this.viscosity * VFactor));
             }
         }
 
         // Shear constraints
         this.shearSprings = [];
         if(this.enableShear) {
-            for (let h=0; h < heightSegments; ++h) {
-                for (let w=0; w < widthSegments; ++w) {
-                    const i = w + h * (widthSegments+1);
-                    this.shearSprings.push(new BrakeSpring(this.dots[i], this.dots[i+1+widthSegments], 
+            for (let h=0; h < this.heightSegments; ++h) {
+                for (let w=0; w < this.widthSegments; ++w) {
+                    const i = w + h * (this.widthSegments+1);
+                    this.shearSprings.push(new BrakeSpring(this.dots[i], this.dots[i+1+this.widthSegments], 
                         this.stiffness * SFactor * this.ShearRatio.stiffness, this.viscosity * VFactor * this.ShearRatio.viscosity));
-                    this.shearSprings.push(new BrakeSpring(this.dots[i+1], this.dots[i+widthSegments], 
+                    this.shearSprings.push(new BrakeSpring(this.dots[i+1], this.dots[i+this.widthSegments], 
                         this.stiffness * SFactor * this.ShearRatio.stiffness, this.viscosity * VFactor * this.ShearRatio.viscosity));
                 }
             }
@@ -153,15 +159,15 @@ export class Flag implements Drawable, Simulated {
         // Bend constraints
         this.bendSprings = [];
         if(this.enableBend) {
-            for (let h=0; h < heightSegments+1; ++h) {
-                for (let w=0; w < widthSegments+1; ++w) {
-                    const i = w + h * widthSegments;
-                    if(w+2 < widthSegments) {
+            for (let h=0; h < this.heightSegments+1; ++h) {
+                for (let w=0; w < this.widthSegments+1; ++w) {
+                    const i = w + h * this.widthSegments;
+                    if(w+2 < this.widthSegments) {
                         this.bendSprings.push(new BrakeSpring(this.dots[i], this.dots[i+2], 
                             this.stiffness * SFactor * this.BendRatio.stiffness, this.viscosity * VFactor *  this.BendRatio.viscosity));
                         }
-                    if(h+2 < widthSegments) {
-                        this.bendSprings.push(new BrakeSpring(this.dots[i], this.dots[i+ 2*widthSegments], 
+                    if(h+2 < this.widthSegments) {
+                        this.bendSprings.push(new BrakeSpring(this.dots[i], this.dots[i+ 2*this.widthSegments], 
                             this.stiffness * SFactor * this.BendRatio.stiffness, this.viscosity * VFactor *  this.BendRatio.viscosity));
                         }
                 }
@@ -171,11 +177,12 @@ export class Flag implements Drawable, Simulated {
     }
 
     update(deltaTime: number): void {
-        for (let d of this.dots) d.update(deltaTime);
-
+        
         for (let s of this.structuralSprings) s.update(deltaTime);
         if(this.enableShear) for (let s of this.shearSprings) s.update(deltaTime);
         if(this.enableBend) for (let s of this.bendSprings) s.update(deltaTime);
+
+        for (let d of this.dots) d.update(deltaTime);
 
         this.updateDraw();
     }
@@ -233,12 +240,10 @@ export class Flag implements Drawable, Simulated {
     setMass(m: number) {
         this.mass = m;
 
-        const { widthSegments, heightSegments} = this.geom.parameters;
-
         for (let i = 0; i < this.dots.length; ++i) {
-            const w = i % (widthSegments+1);
-            const h = Math.floor( i / (widthSegments+1));
-            this.dots[i].setMass(this.massCompute(this.mass, w, h, widthSegments, heightSegments));
+            const w = i % (this.widthSegments+1);
+            const h = Math.floor( i / (this.widthSegments+1));
+            this.dots[i].setMass(this.massCompute(this.mass, w, h, this.widthSegments, this.heightSegments));
         }
         // this.dots.forEach(d => d.setMass(m));
 

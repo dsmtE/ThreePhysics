@@ -51,7 +51,7 @@ export class Dot implements Simulated {
     static updateEulerExp(obj: Dot, deltaTime: number) {
         obj.pos.add(obj.velocity.clone().multiplyScalar(deltaTime));
         obj.velocity.add(obj.force.clone().multiplyScalar(deltaTime/obj.mass));
-        obj.force.multiplyScalar(0);
+        obj.force.set(0, 0, 0);
     }
     
     infos(): string {

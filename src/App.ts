@@ -3,13 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import dat from 'three/examples/jsm/libs/dat.gui.module.js';
 
-// Physics class
-import { Dot, DotDrawable } from './Dot';
-import { BrakeSpring } from './Spring';
-
 import { SimuScene } from './Interfaces';
-import { Vector3 } from 'three';
-import { Flag } from './Flag';
 import { FlagScene } from './Scenes/Scene';
 
 export default class App {
@@ -78,7 +72,7 @@ export default class App {
         // add Events Global
         window.addEventListener('resize', this.onWindowResize.bind(this), false);
 
-        this.simeScene = new FlagScene(20, 20, 50, 50, 1, 0.2, 0.05, this.param.physicUpdateFps);
+        this.simeScene = new FlagScene(13, 10, 50, 50, 1, 0.2, 0.05, this.param.physicUpdateFps);
         this.simeScene.addToscene(this.scene);
 
         this.lastTimeDisplay = Date.now();

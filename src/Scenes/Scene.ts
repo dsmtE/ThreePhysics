@@ -1,4 +1,4 @@
-import { Vector3 } from "three";
+import { Mesh, Vector3, CylinderGeometry, MeshBasicMaterial} from "three";
 import { Flag } from "../Flag";
 
 import { SimuScene } from "../Interfaces";
@@ -6,6 +6,8 @@ export class FlagScene extends SimuScene {
 
     scene : THREE.Scene;
     flag: Flag;
+
+    pole: Mesh;
 
     enableWind: boolean;
     windAmp: Vector3;
@@ -24,7 +26,12 @@ export class FlagScene extends SimuScene {
         this.enableGravity = true;
         this.gravityStrength = 0.4;
 
-        this.flag = new Flag(width, height, widthSegments, heightSegments, mass, stiffness, viscosity, physicFps);
+        const poleHeightRatio: number = 6/3;
+
+        this.flag = new Flag(new Vector3(0, (poleHeightRatio-1)*height, 0), width, height, widthSegments, heightSegments, mass, stiffness, viscosity, physicFps);
+
+        this.pole = new Mesh(new CylinderGeometry(0.2, 0.2, height*poleHeightRatio, 16), new MeshBasicMaterial({color: 0x000000}));
+        this.pole.position.y += (height*poleHeightRatio)/2;
     }
 
     update(deltaTime: number): void {
@@ -45,9 +52,27 @@ export class FlagScene extends SimuScene {
 
     updateDraw(): void { this.flag.updateDraw(); }
 
-    addToscene(scene: THREE.Scene): void { this.flag.addToscene(scene); }
+    addToscene(scene: THREE.Scene): void {
+        this.flag.addToscene(scene);
 
-    removeFromScene(): void { this.flag.removeFromScene(); }
+        if(this.scene == null) {
+            this.scene = scene;
+            this.scene.add(this.pole);
+        }else {
+            console.log('already in one scene');
+        }
+    }
+
+    removeFromScene(): void {
+        this.flag.removeFromScene();
+
+        if(this.scene != null) {
+            this.scene.remove(this.pole);
+            this.scene = null;
+        }else {
+            console.log('not in any scene currently');
+        }
+    }
 
     setPhysicFps(v: number) { this.flag.setPhysicFps(v); }
 
