@@ -16,19 +16,19 @@ export class FlagScene extends SimuScene {
     enableGravity: boolean;
     gravityStrength: number;
 
-    constructor(width: number, height: number, widthSegments: number, heightSegments: number, mass: number, stiffness: number, viscosity: number, physicFps: number) {
+    constructor(width: number, height: number, widthSegments: number, heightSegments: number, mass: number, stiffness: number, viscosity: number, physicFps: number, damping: number) {
         super();
         
         this.enableWind = true;
-        this.windAmp = new Vector3(5, 5, 5);
-        this.windFreq = new Vector3(3.1, 4.2, 2.7);
+        this.windAmp = new Vector3(3.74, 3.72, 3.75);
+        this.windFreq = new Vector3(0.81, 0.98, 1.1);
 
         this.enableGravity = true;
-        this.gravityStrength = 0.4;
+        this.gravityStrength = 0.32;
 
         const poleHeightRatio: number = 6/3;
 
-        this.flag = new Flag(new Vector3(0, (poleHeightRatio-1)*height, 0), width, height, widthSegments, heightSegments, mass, stiffness, viscosity, physicFps);
+        this.flag = new Flag(new Vector3(0, (poleHeightRatio-1)*height, 0), width, height, widthSegments, heightSegments, mass, stiffness, viscosity, physicFps, damping);
 
         this.pole = new Mesh(new CylinderGeometry(0.2, 0.2, height*poleHeightRatio, 16), new MeshBasicMaterial({color: 0x000000}));
         this.pole.position.y += (height*poleHeightRatio)/2;
@@ -93,7 +93,7 @@ export class FlagScene extends SimuScene {
         const gFolder = folder.addFolder('gravity'); 
         gFolder.open();
         gFolder.add(this, 'enableGravity').name('Enable');
-        gFolder.add(this, 'gravityStrength', 0, 20, 0.01).name('Strength');
+        gFolder.add(this, 'gravityStrength', 0, 5, 0.01).name('Strength');
 
         this.flag.guiDisplay(folder);
     }

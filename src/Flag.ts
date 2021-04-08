@@ -30,6 +30,7 @@ export class Flag implements Drawable, Simulated {
 
     stiffness: number;
     viscosity: number;
+    damping: number;
     mass: number;
     physicFps: number;
 
@@ -45,13 +46,14 @@ export class Flag implements Drawable, Simulated {
         viscosity:number,
     };
     
-    constructor(pos: Vector3, width: number, height: number, widthSegments: number, heightSegments: number, mass: number, stiffness: number, viscosity: number, physicFps: number, wireframe: boolean = true) {
+    constructor(pos: Vector3, width: number, height: number, widthSegments: number, heightSegments: number, mass: number, stiffness: number, viscosity: number, physicFps: number, damping: number, wireframe: boolean = true) {
         
         this.widthSegments = widthSegments;
         this.heightSegments = heightSegments;
         this.mass = mass;
         this.stiffness = stiffness;
         this.viscosity = viscosity;
+        this.damping = damping;
         this.physicFps = physicFps;
 
         this.enableShear = true;
@@ -185,11 +187,14 @@ export class Flag implements Drawable, Simulated {
         for (let s of this.structuralSprings) s.update(deltaTime);
         if(this.enableShear) for (let s of this.shearSprings) s.update(deltaTime);
         if(this.enableBend) for (let s of this.bendSprings) s.update(deltaTime);
-        
 
         // this.fixedDotsIndices.forEach(dotId => { this.dots[dotId].resetForce(); });
 
-        for (let d of this.dots) d.update(deltaTime);
+        for (let d of this.dots) {
+            d.applyDamping(this.damping);
+            d.update(deltaTime);
+        }
+
 
         this.updateDraw();
     }
@@ -297,6 +302,7 @@ export class Flag implements Drawable, Simulated {
         PhysicFolder.add(this, 'mass', 0.1, 5, 0.01).onFinishChange(v => this.setMass(v));
         PhysicFolder.add(this, 'stiffness', 0.001, 0.5, 0.001).onFinishChange(v => this.setStiffness(v));
         PhysicFolder.add(this, 'viscosity', 0.001, 0.2, 0.001).onFinishChange(v => this.setViscosity(v));
+        PhysicFolder.add(this, 'damping', 0.0001, 0.01, 0.0001);
 
         const shearFolder = PhysicFolder.addFolder('Shear');
         shearFolder.add(this, 'enableShear').name('enable').onFinishChange(_ => this.updateStringsProperties());

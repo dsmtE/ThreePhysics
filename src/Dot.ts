@@ -24,8 +24,10 @@ export class Dot implements Simulated {
     }
 
     addForce(f: Vector3) { this.force.add(f); }
-
+    
     resetForce() { this.force.set(0, 0, 0); }
+    
+    applyDamping(damping: number) { this.velocity.multiplyScalar(1-damping); }
 
     setMass(m: number) { this.mass = m; }
 
@@ -45,7 +47,7 @@ export class Dot implements Simulated {
     }
     
 
-    static updateVerlet(obj: Dot, deltaTime: number) {    
+    static updateVerlet(obj: Dot, deltaTime: number) {  
         obj.velocity.add(obj.force.clone().multiplyScalar(deltaTime/obj.mass)); // integration vitesse : V(n+1) = V(n) + h * F(n)/m
         obj.pos.add(obj.velocity.clone().multiplyScalar(deltaTime)); // integration position : X(n+1) = X(n) + h * V(n+1)
         obj.force.set(0, 0, 0); // on vide le buffer de force

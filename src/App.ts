@@ -72,7 +72,7 @@ export default class App {
         // add Events Global
         window.addEventListener('resize', this.onWindowResize.bind(this), false);
 
-        this.simeScene = new FlagScene(13, 10, 50, 50, 1, 0.2, 0.05, this.param.physicUpdateFps);
+        this.simeScene = new FlagScene(13, 10, 50, 50, 1, 0.2, 0.05, this.param.physicUpdateFps, 0.001);
         this.simeScene.addToscene(this.scene);
 
         this.lastTimeDisplay = Date.now();
