@@ -25,6 +25,8 @@ export class Dot implements Simulated {
 
     addForce(f: Vector3) { this.force.add(f); }
 
+    resetForce() { this.force.set(0, 0, 0); }
+
     setMass(m: number) { this.mass = m; }
 
     update(deltaTime: number): void {
@@ -42,6 +44,7 @@ export class Dot implements Simulated {
         }
     }
     
+
     static updateVerlet(obj: Dot, deltaTime: number) {    
         obj.velocity.add(obj.force.clone().multiplyScalar(deltaTime/obj.mass)); // integration vitesse : V(n+1) = V(n) + h * F(n)/m
         obj.pos.add(obj.velocity.clone().multiplyScalar(deltaTime)); // integration position : X(n+1) = X(n) + h * V(n+1)

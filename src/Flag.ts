@@ -26,6 +26,7 @@ export class Flag implements Drawable, Simulated {
     structuralSprings: (BrakeSpring)[];
     shearSprings: (BrakeSpring)[];
     bendSprings: (BrakeSpring)[];
+    // fixedDotsIndices: number[];
 
     stiffness: number;
     viscosity: number;
@@ -108,6 +109,7 @@ export class Flag implements Drawable, Simulated {
 
     updateDots() {
         this.dots = [];
+        // this.fixedDotsIndices = [];
 
         const posAttributs = this.geom.getAttribute('position');
 
@@ -118,6 +120,8 @@ export class Flag implements Drawable, Simulated {
                 this.dots.push(new Dot(this.massCompute(this.mass, w, h, this.widthSegments, this.heightSegments), pos, w == 0 ? Dot.Type.Fix : Dot.Type.notFix));
 			}
 		}
+
+        // this.fixedDotsIndices = Array(this.heightSegments+1).fill(0).map((_, i) => i * (this.widthSegments+1));
     }
 
     private massCompute(mass: number, w: number, h: number, widthSegments:number, heightSegments: number) {
@@ -181,6 +185,9 @@ export class Flag implements Drawable, Simulated {
         for (let s of this.structuralSprings) s.update(deltaTime);
         if(this.enableShear) for (let s of this.shearSprings) s.update(deltaTime);
         if(this.enableBend) for (let s of this.bendSprings) s.update(deltaTime);
+        
+
+        // this.fixedDotsIndices.forEach(dotId => { this.dots[dotId].resetForce(); });
 
         for (let d of this.dots) d.update(deltaTime);
 
