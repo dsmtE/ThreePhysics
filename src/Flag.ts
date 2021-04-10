@@ -10,6 +10,8 @@ import blueDenimImg from './assets/blueDenim.png';
 import cottonWoolImg from './assets/cottonWool.jpg';
 import blueWoolImg from './assets/blueWool.jpg';
 import redFabricImg from './assets/redFabric.jpg';
+import imacImg from './assets/imac.jpg';
+import UGMImg from './assets/UGM.jpg';
 export class Flag implements Drawable, Simulated {
 
     widthSegments: number;
@@ -85,10 +87,12 @@ export class Flag implements Drawable, Simulated {
         }
 
         const imgs = {
+            'imacImg': imacImg,
+            'UGMImg': UGMImg,
             'blueDenim': blueDenimImg,
             'cottonWool': cottonWoolImg,
             'blueWool': blueWoolImg,
-            'redFabric': redFabricImg
+            'redFabric': redFabricImg,
         };
 
         Object.keys(imgs).forEach(k => {
@@ -281,19 +285,23 @@ export class Flag implements Drawable, Simulated {
         this.geom.attributes.position.needsUpdate = true;
     }
 
-
     guiDisplay(guiParent: any, folderName: string = 'flag') {
 
         const folder = guiParent.addFolder(folderName);
         folder.open();
 
         const matFolder = folder.addFolder('Material');
-        
+        matFolder.open();
+
         matFolder.add(this.mesh.material, 'wireframe');
         matFolder.addColor(this, 'flagColor').onChange(v => this.mesh.material.color.setHex(v) );
         matFolder.add(this.mesh.material, 'map', Object.keys(this.diffuseMaps)).onChange(k => {
             this.mesh.material.map = this.diffuseMaps[k];
             this.mesh.material.needsUpdate = true;
+
+            this.flagColor = 0xffffff;
+            this.mesh.material.color.setHex(this.flagColor);
+            this.mesh.material.wireframe = false;
         });
 
         const PhysicFolder = folder.addFolder('Physic options');

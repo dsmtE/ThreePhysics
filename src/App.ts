@@ -86,8 +86,8 @@ export default class App {
     }
 
     setupScene() {
-        this.scene.background = new THREE.Color(0xe0e0e0);
-        this.scene.fog = new THREE.Fog(0xe0e0e0, 30, 150);
+        this.scene.background = new THREE.Color(0xf0f0f0);
+        this.scene.fog = new THREE.Fog(0xf0f0f0, 50, 150);
 
         // lights
         this.scene.add(new THREE.AmbientLight(0x222222));
@@ -98,8 +98,8 @@ export default class App {
         this.scene.add(dirLight);
 
         // grid
-        const grid = new THREE.GridHelper(400, 80, 0x000000, 0x000000);
-        grid.material.opacity = 0.2;
+        const grid = new THREE.GridHelper(500, 40, 0x000000, 0x000000);
+        grid.material.opacity = 0.1;
         grid.material.transparent = true;
         this.scene.add(grid);
     }
